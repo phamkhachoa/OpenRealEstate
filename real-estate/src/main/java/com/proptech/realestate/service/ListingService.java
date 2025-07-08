@@ -3,7 +3,6 @@ package com.proptech.realestate.service;
 import com.proptech.realestate.model.dto.CreateListingRequest;
 import com.proptech.realestate.model.entity.Listing;
 import com.proptech.realestate.model.entity.User;
-import com.proptech.realestate.model.enums.PropertyType;
 import com.proptech.realestate.model.enums.StandardStatus;
 import com.proptech.realestate.repository.ListingRepository;
 import com.proptech.realestate.repository.UserRepository;
@@ -37,17 +36,23 @@ public class ListingService {
         listing.setBedroomsTotal(request.getBedroomsTotal());
         listing.setBathroomsTotalInteger(request.getBathroomsTotalInteger());
         listing.setUnparsedAddress(request.getUnparsedAddress());
-        listing.setLatitude(request.getLatitude());
-        listing.setLongitude(request.getLongitude());
-        listing.setAdditionalDetails(request.getAdditionalDetails());
 
-        // Set relationships and enums
-        listing.setUser(user);
-        try {
-            listing.setPropertyType(PropertyType.valueOf(request.getPropertyType()));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid PropertyType: " + request.getPropertyType());
+        // Convert latitude & longitude (Double) to BigDecimal (RESO compliant)
+        if (request.getLatitude() != null) {
+            listing.setLatitude(java.math.BigDecimal.valueOf(request.getLatitude()));
         }
+        if (request.getLongitude() != null) {
+            listing.setLongitude(java.math.BigDecimal.valueOf(request.getLongitude()));
+        }
+
+        // Map amenities or other dynamic details if provided
+        if (request.getAdditionalDetails() != null) {
+            listing.setAmenities(request.getAdditionalDetails());
+        }
+
+        // Set relationships and simple string property type
+        listing.setUser(user);
+        listing.setPropertyType(request.getPropertyType());
 
         // Set default/generated values
         listing.setListingId(generateListingId());

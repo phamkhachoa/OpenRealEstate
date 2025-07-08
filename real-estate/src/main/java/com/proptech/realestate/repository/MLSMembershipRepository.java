@@ -192,4 +192,41 @@ public interface MLSMembershipRepository extends JpaRepository<MLSMembership, UU
     long countByMlsRegion_IdAndStatus(UUID regionId, MLSMembership.MembershipStatus status);
 
     long countByMlsRegion_IdAndType(UUID regionId, MLSMembership.MembershipType type);
+
+    /* === Additional methods to support legacy service calls after RESO refactor === */
+
+    /**
+     * Find memberships by status only.
+     */
+    List<MLSMembership> findByStatus(MLSMembership.MembershipStatus status);
+
+    /**
+     * Find memberships by user ID.
+     */
+    List<MLSMembership> findByUser_Id(UUID userId);
+
+    /**
+     * Find memberships by MLS region ID.
+     */
+    List<MLSMembership> findByMlsRegion_Id(UUID regionId);
+
+    /**
+     * Find memberships by office ID.
+     */
+    List<MLSMembership> findByOffice_Id(UUID officeId);
+
+    /**
+     * Find memberships for agents overseen by a supervising broker.
+     */
+    List<MLSMembership> findByOffice_SupervisingBroker(User supervisingBroker);
+
+    /**
+     * Count memberships by office and status.
+     */
+    long countByOffice_IdAndStatus(UUID officeId, MLSMembership.MembershipStatus status);
+
+    /**
+     * Count memberships by office and type.
+     */
+    long countByOffice_IdAndType(UUID officeId, MLSMembership.MembershipType type);
 } 

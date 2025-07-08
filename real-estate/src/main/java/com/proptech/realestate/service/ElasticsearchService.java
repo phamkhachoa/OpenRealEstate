@@ -104,7 +104,7 @@ public class ElasticsearchService {
     private ListingDocument convertToDocument(Listing listing) {
         ListingDocument.ListingDocumentBuilder builder = ListingDocument.builder()
                 .id(listing.getId().toString())
-                .listingId(listing.getListingId())
+                .listingCode(listing.getListingId())
                 .title(listing.getTitle())
                 .description(listing.getPublicRemarks())
                 .fullAddress(listing.getUnparsedAddress())
@@ -118,7 +118,7 @@ public class ElasticsearchService {
 
         // Set property type information (simplified from RESO)
         if (listing.getPropertyType() != null) {
-            builder.categoryName(listing.getPropertyType().name());
+            builder.categoryName(listing.getPropertyType());
         }
 
         // Set user information
@@ -130,12 +130,14 @@ public class ElasticsearchService {
 
         // Handle geolocation
         if (listing.getLatitude() != null && listing.getLongitude() != null) {
-            builder.location(new GeoPoint(listing.getLatitude(), listing.getLongitude()));
+            builder.location(new GeoPoint(
+                    listing.getLatitude().doubleValue(),
+                    listing.getLongitude().doubleValue()));
         }
 
         // Convert additional details (JSONB) to dynamic attributes
-        if (listing.getAdditionalDetails() != null && !listing.getAdditionalDetails().isEmpty()) {
-            List<ListingDocument.DynamicAttribute> dynamicAttributes = listing.getAdditionalDetails().entrySet().stream()
+        if (listing.getAmenities() != null && !listing.getAmenities().isEmpty()) {
+            List<ListingDocument.DynamicAttribute> dynamicAttributes = listing.getAmenities().entrySet().stream()
                     .map(entry -> ListingDocument.DynamicAttribute.builder()
                             .name(entry.getKey())
                             .value(entry.getValue() != null ? entry.getValue().toString() : null)
