@@ -1,314 +1,180 @@
 package com.proptech.realestate.model.entity;
 
+import com.proptech.realestate.model.enums.StandardStatus;
+import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
-import lombok.Data;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.GenericGenerator;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.Type;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-import com.proptech.realestate.model.entity.ListingCategory;
-import com.proptech.realestate.model.entity.User;
-import com.proptech.realestate.model.entity.ListingAttribute;
-
+@Getter
+@Setter
 @Entity
 @Table(name = "listings")
-@Data
 public class Listing {
 
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(
-            name = "UUID",
-            strategy = "org.hibernate.id.UUIDGenerator"
-    )
-    @Column(updatable = false, nullable = false)
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(columnDefinition = "UUID")
     private UUID id;
 
-    @Column(name = "listing_code", unique = true, nullable = false)
-    private String listingCode;
+    // --- RESO Core Fields ---
+    @Column(name = "listing_id", unique = true)
+    private String listingId; // RESO: ListingId - The public, human-readable identifier.
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "standard_status", nullable = false)
+    private StandardStatus standardStatus; // RESO: StandardStatus - e.g., Active, Pending, Closed
+
+    @Column(name = "mls_status")
+    private String mlsStatus; // RESO: MlsStatus - The local MLS status, mapped to StandardStatus.
+
+    @Column(name = "list_price", precision = 15, scale = 2)
+    private BigDecimal listPrice; // RESO: ListPrice
+
+    @Column(name = "property_type")
+    private String propertyType; // RESO: PropertyType - e.g., Residential, Commercial
+
+    @Column(name = "property_sub_type")
+    private String propertySubType; // RESO: PropertySubType - e.g., SingleFamilyResidence, Condominium
+
+    @Column(name = "bedrooms_total")
+    private Integer bedroomsTotal; // RESO: BedroomsTotal
+
+    @Column(name = "bathrooms_total_integer")
+    private Integer bathroomsTotalInteger; // RESO: BathroomsTotalInteger
+
+    @Column(name = "living_area")
+    private Double livingArea; // RESO: LivingArea
+
+    @Column(name = "living_area_units")
+    private String livingAreaUnits; // RESO: LivingAreaUnits - e.g., "Square Feet", "Square Meters"
+
+    @Column(name = "lot_size_acres")
+    private Double lotSizeAcres; // RESO: LotSizeAcres
+
+    @Column(name = "lot_size_square_feet")
+    private Double lotSizeSquareFeet; // RESO: LotSizeSquareFeet
+
+    @Column(name = "year_built")
+    private Integer yearBuilt; // RESO: YearBuilt
+
+    // --- Address Fields (RESO compliant) ---
+    @Column(name = "unparsed_address", length = 500)
+    private String unparsedAddress; // RESO: UnparsedAddress
+
+    @Column(name = "street_number")
+    private String streetNumber;
+
+    @Column(name = "street_name")
+    private String streetName;
+
+    @Column(name = "city")
+    private String city; // RESO: City
+
+    @Column(name = "state_or_province")
+    private String stateOrProvince; // RESO: StateOrProvince
+
+    @Column(name = "postal_code")
+    private String postalCode; // RESO: PostalCode
+
+    @Column(name = "country")
+    private String country; // RESO: Country
+
+    @Column(name = "latitude", precision = 10, scale = 7)
+    private BigDecimal latitude; // RESO: Latitude
+
+    @Column(name = "longitude", precision = 10, scale = 7)
+    private BigDecimal longitude; // RESO: Longitude
+
+    // --- Other Important RESO Fields ---
+    @Column(name = "listing_contract_date")
+    private LocalDate listingContractDate; // RESO: ListingContractDate
+
+    @Column(name = "on_market_date")
+    private LocalDate onMarketDate; // RESO: OnMarketDate
+    
+    @Column(name = "close_date")
+    private LocalDate closeDate; // RESO: CloseDate
+
+    @Column(name = "close_price", precision = 15, scale = 2)
+    private BigDecimal closePrice; // RESO: ClosePrice
+
+    @Column(name = "public_remarks", columnDefinition = "TEXT")
+    private String publicRemarks; // RESO: PublicRemarks
+
+    @Column(name = "private_remarks", columnDefinition = "TEXT")
+    private String privateRemarks; // RESO: PrivateRemarks
+
+    @Column(name = "architectural_style")
+    private String architecturalStyle; // RESO: ArchitecturalStyle
+
+    @Column(name = "new_construction_yn")
+    private Boolean newConstructionYn; // RESO: NewConstructionYN
+
+    @Column(name = "photos_count")
+    private Integer photosCount; // RESO: PhotosCount
+
+    @Column(name = "videos_count")
+    private Integer videosCount; // RESO: VideosCount
+
+    // --- Timestamps (RESO compliant) ---
+    @Column(name = "modification_timestamp", nullable = false)
+    private LocalDateTime modificationTimestamp; // RESO: ModificationTimestamp
+
+    @Column(name = "status_change_timestamp")
+    private LocalDateTime statusChangeTimestamp; // RESO: StatusChangeTimestamp
+
+    @Column(name = "photos_change_timestamp")
+    private LocalDateTime photosChangeTimestamp; // RESO: PhotosChangeTimestamp
+
+    // --- System & Relationship Fields (Not strictly RESO, but necessary) ---
+    @Column(name = "title", nullable = false)
+    private String title;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+    
+    @Type(JsonType.class)
+    @Column(name = "images", columnDefinition = "json")
+    private List<String> images;
+
+    @Type(JsonType.class)
+    @Column(name = "amenities", columnDefinition = "json")
+    private Map<String, Object> amenities;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_agent_id")
+    private MLSMembership listingAgent; // Maps to RESO's ListAgent... fields
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_office_id")
+    private Office listingOffice; // Maps to RESO's ListOffice... fields
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private ListingCategory category;
-
-    @Column(name = "full_address")
-    private String fullAddress;
-
-    // Geospatial coordinates  
-    private Double latitude;
-    private Double longitude;
-
-    @Column(nullable = false)
-    private String title;
-
-    @Lob
-    private String description;
-
-    @Column(nullable = false)
-    private BigDecimal price;
-
-    @Column(nullable = false)
-    private Double area;
-
-    private Integer numBedrooms;
-    private Integer numBathrooms;
-
-    @Column(name = "listing_type")
-    @Enumerated(EnumType.STRING)
-    private ListingType listingType;
-
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private ListingStatus status;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ListingAttribute> attributes = new HashSet<>();
-
-    // MLS-specific fields
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "mls_region_id")
-    private MLSRegion mlsRegion;
-
-    @Column(name = "mls_number", unique = true, length = 50)
-    private String mlsNumber;
-
-    @Column(name = "original_list_price", precision = 12, scale = 2)
-    private BigDecimal originalListPrice;
-
-    // Agent and Office Information
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "listing_agent_id")
-    private User listingAgent;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "listing_office_id")
-    private Office listingOffice;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "selling_agent_id")
-    private User sellingAgent;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "selling_office_id")
-    private Office sellingOffice;
-
-    // Commission Information
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "commission_structure_id")
-    private CommissionStructure commissionStructure;
-
-    @Column(name = "total_commission_percentage", precision = 5, scale = 2)
-    private BigDecimal totalCommissionPercentage;
-
-    @Column(name = "listing_commission_percentage", precision = 5, scale = 2)
-    private BigDecimal listingCommissionPercentage;
-
-    @Column(name = "selling_commission_percentage", precision = 5, scale = 2)
-    private BigDecimal sellingCommissionPercentage;
-
-    // MLS Compliance and Workflow
-    @Column(name = "mls_submission_date")
-    private LocalDateTime mlsSubmissionDate;
-
-    @Column(name = "last_mls_update")
-    private LocalDateTime lastMLSUpdate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "approval_status", length = 20)
-    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approved_by")
-    private User approvedBy;
-
-    @Column(name = "approved_at")
-    private LocalDateTime approvedAt;
-
-    // Sharing and Cooperation
-    @Column(name = "is_shared_listing", nullable = false)
-    private Boolean isSharedListing = true;
-
-    @Column(name = "sharing_restrictions", columnDefinition = "TEXT")
-    private String sharingRestrictions;
-
-    @Column(name = "cooperation_compensation", columnDefinition = "TEXT")
-    private String cooperationCompensation;
-
-    // Showing Information
-    @Column(name = "showing_instructions", columnDefinition = "TEXT")
-    private String showingInstructions;
-
-    @Column(name = "lockbox_type", length = 50)
-    private String lockboxType;
-
-    @Column(name = "lockbox_location", length = 255)
-    private String lockboxLocation;
-
-    @Column(name = "showing_contact_name", length = 255)
-    private String showingContactName;
-
-    @Column(name = "showing_contact_phone", length = 20)
-    private String showingContactPhone;
-
-    @Column(name = "showing_requirements", columnDefinition = "TEXT")
-    private String showingRequirements;
-
-    // Private Remarks (MLS members only)
-    @Column(name = "private_remarks", columnDefinition = "TEXT")
-    private String privateRemarks;
-
-    @Column(name = "broker_remarks", columnDefinition = "TEXT")
-    private String brokerRemarks;
-
-    // Market Information
-    @Column(name = "days_on_market", nullable = false)
-    private Integer daysOnMarket = 0;
-
-    @Column(name = "cumulative_days_on_market", nullable = false)
-    private Integer cumulativeDaysOnMarket = 0;
-
-    @Column(name = "price_change_timestamp")
-    private LocalDateTime priceChangeTimestamp;
-
-    // Transaction Information
-    @Column(name = "under_contract_date")
-    private java.time.LocalDate underContractDate;
-
-    @Column(name = "closing_date")
-    private java.time.LocalDate closingDate;
-
-    @Column(name = "sold_price", precision = 12, scale = 2)
-    private BigDecimal soldPrice;
-
-    // Enums
-    public enum ListingType {
-        RENT, SALE, RENTING, BUY, CHANGE
-    }
-
-    public enum ListingStatus {
-        INACTIVE, ACTIVE, MODERATION, DRAFT, SOLD, EXPIRED, PENDING, UNDER_CONTRACT
-    }
-
-    public enum ApprovalStatus {
-        PENDING,    // Waiting for approval
-        APPROVED,   // Approved and active
-        REJECTED,   // Rejected - needs revision
-        EXPIRED     // Approval expired
-    }
-
-    // Helper methods
-    public String getAddress() {
-        return this.fullAddress;
-    }
-
-    // MLS-specific helper methods
-    public boolean isMLSListing() {
-        return mlsNumber != null && mlsRegion != null;
-    }
-
-    public boolean isApproved() {
-        return approvalStatus == ApprovalStatus.APPROVED;
-    }
-
-    public boolean needsApproval() {
-        return approvalStatus == ApprovalStatus.PENDING;
-    }
-
-    public boolean isUnderContract() {
-        return status == ListingStatus.UNDER_CONTRACT || underContractDate != null;
-    }
-
-    public boolean isSold() {
-        return status == ListingStatus.SOLD || soldPrice != null;
-    }
-
-    public BigDecimal getCurrentPrice() {
-        return price;
-    }
-
-    public BigDecimal getOriginalPrice() {
-        return originalListPrice != null ? originalListPrice : price;
-    }
-
-    public boolean hasPriceChanged() {
-        return originalListPrice != null && 
-               price.compareTo(originalListPrice) != 0;
-    }
-
-    public BigDecimal getPriceReduction() {
-        if (originalListPrice == null) return BigDecimal.ZERO;
-        return originalListPrice.subtract(price);
-    }
-
-    public void updatePrice(BigDecimal newPrice) {
-        if (originalListPrice == null) {
-            originalListPrice = price;
-        }
-        price = newPrice;
-        priceChangeTimestamp = LocalDateTime.now();
-        lastMLSUpdate = LocalDateTime.now();
-    }
-
-    public void approve(User approver) {
-        this.approvalStatus = ApprovalStatus.APPROVED;
-        this.approvedBy = approver;
-        this.approvedAt = LocalDateTime.now();
-        this.status = ListingStatus.ACTIVE;
-    }
-
-    public void reject() {
-        this.approvalStatus = ApprovalStatus.REJECTED;
-        this.status = ListingStatus.DRAFT;
-    }
-
-    public void submitToMLS() {
-        this.mlsSubmissionDate = LocalDateTime.now();
-        this.approvalStatus = ApprovalStatus.PENDING;
-        if (mlsRegion != null && !mlsRegion.getRequiresApproval()) {
-            this.approvalStatus = ApprovalStatus.APPROVED;
-            this.status = ListingStatus.ACTIVE;
+    @OneToOne(mappedBy = "listing", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private ListingAgreement listingAgreement;
+    
+    @PrePersist
+    protected void onCreate() {
+        modificationTimestamp = LocalDateTime.now();
+        if (standardStatus == null) {
+            standardStatus = StandardStatus.ComingSoon; // Default status
         }
     }
 
-    public void markSold(BigDecimal salePrice, java.time.LocalDate closingDate) {
-        this.soldPrice = salePrice;
-        this.closingDate = closingDate;
-        this.status = ListingStatus.SOLD;
-        this.lastMLSUpdate = LocalDateTime.now();
+    @PreUpdate
+    protected void onUpdate() {
+        modificationTimestamp = LocalDateTime.now();
     }
-
-    public void markUnderContract(java.time.LocalDate contractDate) {
-        this.underContractDate = contractDate;
-        this.status = ListingStatus.UNDER_CONTRACT;
-        this.lastMLSUpdate = LocalDateTime.now();
-    }
-
-    public void expire() {
-        this.status = ListingStatus.EXPIRED;
-        this.lastMLSUpdate = LocalDateTime.now();
-    }
-
-    public void updateDaysOnMarket() {
-        if (createdAt != null) {
-            this.daysOnMarket = (int) java.time.Duration.between(createdAt, LocalDateTime.now()).toDays();
-        }
-    }
-} 
+}

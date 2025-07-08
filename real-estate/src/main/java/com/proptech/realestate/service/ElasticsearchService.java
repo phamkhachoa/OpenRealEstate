@@ -104,23 +104,21 @@ public class ElasticsearchService {
     private ListingDocument convertToDocument(Listing listing) {
         ListingDocument.ListingDocumentBuilder builder = ListingDocument.builder()
                 .id(listing.getId().toString())
-                .listingCode(listing.getListingCode())
+                .listingId(listing.getListingId())
                 .title(listing.getTitle())
-                .description(listing.getDescription())
-                .fullAddress(listing.getAddress())
-                .price(listing.getPrice())
-                .area(listing.getArea())
-                .numBedrooms(listing.getNumBedrooms())
-                .numBathrooms(listing.getNumBathrooms())
-                .listingType(listing.getListingType() != null ? listing.getListingType().name() : null)
-                .status(listing.getStatus() != null ? listing.getStatus().name() : null)
-                .createdAt(listing.getCreatedAt())
-                .updatedAt(listing.getUpdatedAt());
+                .description(listing.getPublicRemarks())
+                .fullAddress(listing.getUnparsedAddress())
+                .price(listing.getListPrice())
+                .area(listing.getLivingArea())
+                .numBedrooms(listing.getBedroomsTotal())
+                .numBathrooms(listing.getBathroomsTotalInteger())
+                .status(listing.getStandardStatus() != null ? listing.getStandardStatus().name() : null)
+                .createdAt(listing.getModificationTimestamp())
+                .updatedAt(listing.getModificationTimestamp());
 
-        // Set category information
-        if (listing.getCategory() != null) {
-            builder.categoryId(listing.getCategory().getId().toString())
-                   .categoryName(listing.getCategory().getName());
+        // Set property type information (simplified from RESO)
+        if (listing.getPropertyType() != null) {
+            builder.categoryName(listing.getPropertyType().name());
         }
 
         // Set user information
@@ -130,15 +128,19 @@ public class ElasticsearchService {
             // Assume we have userType logic later
         }
 
-        // Handle geolocation - this is simplified, real implementation would geocode address
+        // Handle geolocation
         if (listing.getLatitude() != null && listing.getLongitude() != null) {
             builder.location(new GeoPoint(listing.getLatitude(), listing.getLongitude()));
         }
 
-        // Convert dynamic attributes
-        if (listing.getAttributes() != null && !listing.getAttributes().isEmpty()) {
-            List<ListingDocument.DynamicAttribute> dynamicAttributes = listing.getAttributes().stream()
-                    .map(this::convertAttribute)
+        // Convert additional details (JSONB) to dynamic attributes
+        if (listing.getAdditionalDetails() != null && !listing.getAdditionalDetails().isEmpty()) {
+            List<ListingDocument.DynamicAttribute> dynamicAttributes = listing.getAdditionalDetails().entrySet().stream()
+                    .map(entry -> ListingDocument.DynamicAttribute.builder()
+                            .name(entry.getKey())
+                            .value(entry.getValue() != null ? entry.getValue().toString() : null)
+                            .type("JSON") // Simplified type
+                            .build())
                     .collect(Collectors.toList());
             builder.dynamicAttributes(dynamicAttributes);
         }
@@ -173,7 +175,7 @@ public class ElasticsearchService {
             Listing listing = listingOpt.get();
             
             // Only index active listings
-            if (listing.getStatus() == Listing.ListingStatus.ACTIVE) {
+            if (listing.getStandardStatus() == com.proptech.realestate.model.enums.StandardStatus.Active) {
                 indexListing(listing);
             } else {
                 // Remove from index if not active

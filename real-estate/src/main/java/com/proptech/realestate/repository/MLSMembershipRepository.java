@@ -179,4 +179,17 @@ public interface MLSMembershipRepository extends JpaRepository<MLSMembership, UU
            "(m.status = 'ACTIVE' OR m.status = 'GRACE_PERIOD') " +
            "ORDER BY m.membershipNumber ASC")
     List<MLSMembership> findActiveOrderByMembershipNumber();
+
+    List<MLSMembership> findByMlsRegion_IdAndStatus(UUID regionId, MLSMembership.MembershipStatus status);
+
+    List<MLSMembership> findByMlsRegion_IdAndType(UUID regionId, MLSMembership.MembershipType type);
+
+    @Query("SELECT m FROM MLSMembership m WHERE m.expiryDate <= :expiryDate AND (m.mlsRegion.id = :regionId OR :regionId IS NULL)")
+    List<MLSMembership> findExpiringMemberships(@Param("expiryDate") LocalDate expiryDate, @Param("regionId") UUID regionId);
+
+    long countByMlsRegion_Id(UUID regionId);
+
+    long countByMlsRegion_IdAndStatus(UUID regionId, MLSMembership.MembershipStatus status);
+
+    long countByMlsRegion_IdAndType(UUID regionId, MLSMembership.MembershipType type);
 } 

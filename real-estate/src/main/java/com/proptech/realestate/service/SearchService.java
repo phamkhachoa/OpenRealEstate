@@ -120,25 +120,27 @@ public class SearchService {
         // Allowed sort fields to prevent SQL injection
         switch (sortBy.toLowerCase()) {
             case "price":
-                return "price";
+                return "listPrice";
             case "area":
-                return "area";
+                return "livingArea";
             case "createdat":
             case "created_at":
-                return "createdAt";
+                return "modificationTimestamp";
             case "updatedat":
             case "updated_at":
-                return "updatedAt";
+                return "modificationTimestamp";
             case "title":
                 return "title";
+            case "bedrooms":
             case "numbedrooms":
             case "num_bedrooms":
-                return "numBedrooms";
+                return "bedroomsTotal";
+            case "bathrooms":
             case "numbathrooms":
             case "num_bathrooms":
-                return "numBathrooms";
+                return "bathroomsTotalInteger";
             default:
-                return "createdAt";
+                return "modificationTimestamp";
         }
     }
     
@@ -147,29 +149,29 @@ public class SearchService {
         
         // Calculate price per square meter
         String pricePerSqm = null;
-        if (listing.getPrice() != null && listing.getArea() != null && listing.getArea() > 0) {
-            BigDecimal pricePerSqmValue = listing.getPrice()
-                    .divide(BigDecimal.valueOf(listing.getArea()), 2, RoundingMode.HALF_UP);
+        if (listing.getListPrice() != null && listing.getLivingArea() != null && listing.getLivingArea() > 0) {
+            BigDecimal pricePerSqmValue = listing.getListPrice()
+                    .divide(BigDecimal.valueOf(listing.getLivingArea()), 2, RoundingMode.HALF_UP);
             pricePerSqm = formatPrice(pricePerSqmValue) + "/m²";
         }
         
         return SearchListingResponse.ListingSearchResult.builder()
                 .id(listing.getId().toString())
-                .listingCode(listing.getListingCode())
+                .listingId(listing.getListingId())
                 .title(listing.getTitle())
-                .description(truncateDescription(listing.getDescription()))
-                .price(formatPrice(listing.getPrice()))
-                .area(listing.getArea() != null ? listing.getArea() + " m²" : null)
-                .numBedrooms(listing.getNumBedrooms())
-                .numBathrooms(listing.getNumBathrooms())
-                .listingType(listing.getListingType() != null ? listing.getListingType().name() : null)
-                .status(listing.getStatus() != null ? listing.getStatus().name() : null)
-                .address(listing.getFullAddress())
-                .categoryName(listing.getCategory() != null ? listing.getCategory().getName() : null)
-                .createdAt(listing.getCreatedAt())
-                .updatedAt(listing.getUpdatedAt() != null ? listing.getUpdatedAt().format(formatter) : null)
-                .pricePerSqm(listing.getPrice() != null && listing.getArea() != null && listing.getArea() > 0 ? 
-                    listing.getPrice().divide(BigDecimal.valueOf(listing.getArea()), 2, RoundingMode.HALF_UP).doubleValue() : null)
+                .description(truncateDescription(listing.getPublicRemarks()))
+                .price(formatPrice(listing.getListPrice()))
+                .area(listing.getLivingArea() != null ? listing.getLivingArea() + " m²" : null)
+                .numBedrooms(listing.getBedroomsTotal())
+                .numBathrooms(listing.getBathroomsTotalInteger())
+                .listingType(listing.getPropertyType() != null ? listing.getPropertyType().name() : null)
+                .status(listing.getStandardStatus() != null ? listing.getStandardStatus().name() : null)
+                .address(listing.getUnparsedAddress())
+                .categoryName(listing.getPropertySubType())
+                .createdAt(listing.getCreationTimestamp())
+                .updatedAt(listing.getModificationTimestamp() != null ? listing.getModificationTimestamp().format(formatter) : null)
+                .pricePerSqm(listing.getListPrice() != null && listing.getLivingArea() != null && listing.getLivingArea() > 0 ? 
+                    listing.getListPrice().divide(BigDecimal.valueOf(listing.getLivingArea()), 2, RoundingMode.HALF_UP).doubleValue() : null)
                 .build();
     }
     

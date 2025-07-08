@@ -314,28 +314,24 @@ public class OfficeService {
      */
     @Transactional(readOnly = true)
     public OfficeStats getOfficeStats(UUID officeId) {
-        Office office = getOfficeById(officeId);
-        
-        // Get active memberships count
-        long activeMemberships = membershipRepository.countActiveByOffice(office);
-        
-        // Get agent count by type
-        long agents = membershipRepository.countActiveByTypeAndRegion(
-            MLSMembership.MembershipType.AGENT, office.getMlsRegion());
-        long brokers = membershipRepository.countActiveByTypeAndRegion(
-            MLSMembership.MembershipType.BROKER, office.getMlsRegion());
-        
+        Office office = officeRepository.findById(officeId)
+            .orElseThrow(() -> new EntityNotFoundException("Office not found: " + officeId));
+            
+        long activeMemberships = membershipRepository.countByOffice_IdAndStatus(officeId, MLSMembership.MembershipStatus.ACTIVE);
+        long agentCount = membershipRepository.countByOffice_IdAndType(officeId, MLSMembership.MembershipType.AGENT);
+        long brokerCount = membershipRepository.countByOffice_IdAndType(officeId, MLSMembership.MembershipType.BROKER);
+
         return OfficeStats.builder()
-            .officeId(officeId)
-            .officeName(office.getOfficeName())
-            .isActive(office.getIsActive())
-            .totalAgents(office.getTotalAgents())
-            .activeMemberships(activeMemberships)
-            .agentsCount(agents)
-            .brokersCount(brokers)
-            .establishedDate(office.getEstablishedDate())
-            .hasLocation(office.hasLocation())
-            .build();
+                .officeId(office.getId())
+                .officeName(office.getOfficeName())
+                .isActive(office.getIsActive())
+                .totalAgents(office.getTotalAgents())
+                .activeMemberships(activeMemberships)
+                .agentsCount(agentCount)
+                .brokersCount(brokerCount)
+                .establishedDate(office.getEstablishedDate())
+                .hasLocation(office.getLatitude() != null && office.getLongitude() != null)
+                .build();
     }
 
     /**

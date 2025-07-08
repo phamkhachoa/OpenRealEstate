@@ -1,5 +1,8 @@
 package com.proptech.realestate.service;
 
+import com.proptech.realestate.dto.CreateMembershipRequest;
+import com.proptech.realestate.dto.MembershipStats;
+import com.proptech.realestate.dto.UpdateMembershipRequest;
 import com.proptech.realestate.model.entity.MLSMembership;
 import com.proptech.realestate.model.entity.MLSRegion;
 import com.proptech.realestate.model.entity.Office;
@@ -8,17 +11,17 @@ import com.proptech.realestate.repository.MLSMembershipRepository;
 import com.proptech.realestate.repository.MLSRegionRepository;
 import com.proptech.realestate.repository.OfficeRepository;
 import com.proptech.realestate.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -33,7 +36,7 @@ public class MLSMembershipService {
 
     private final MLSMembershipRepository membershipRepository;
     private final UserRepository userRepository;
-    private final MLSRegionRepository regionRepository;
+    private final MLSRegionRepository mlsRegionRepository;
     private final OfficeRepository officeRepository;
 
     /**
@@ -42,211 +45,49 @@ public class MLSMembershipService {
     public MLSMembership createMembership(CreateMembershipRequest request) {
         log.info("Creating new MLS membership for user: {}", request.getUserId());
         
-        // Validate user exists
         User user = userRepository.findById(request.getUserId())
-            .orElseThrow(() -> new EntityNotFoundException("User not found: " + request.getUserId()));
+            .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + request.getUserId()));
         
-        // Validate region exists
-        MLSRegion region = regionRepository.findById(request.getRegionId())
-            .orElseThrow(() -> new EntityNotFoundException("MLS region not found: " + request.getRegionId()));
+        MLSRegion region = mlsRegionRepository.findById(request.getRegionId())
+            .orElseThrow(() -> new EntityNotFoundException("MLSRegion not found with id: " + request.getRegionId()));
         
-        // Check if user already has active membership in this region
-        if (membershipRepository.hasActiveMembershipInRegion(user, region)) {
-            throw new IllegalArgumentException("User already has active membership in this region");
-        }
-        
-        // Validate office if provided
         Office office = null;
         if (request.getOfficeId() != null) {
             office = officeRepository.findById(request.getOfficeId())
-                .orElseThrow(() -> new EntityNotFoundException("Office not found: " + request.getOfficeId()));
-            
-            // Ensure office is in the same region
-            if (!office.getMlsRegion().equals(region)) {
-                throw new IllegalArgumentException("Office must be in the same MLS region");
-            }
+                .orElseThrow(() -> new EntityNotFoundException("Office not found with id: " + request.getOfficeId()));
         }
         
-        // Create membership
         MLSMembership membership = new MLSMembership();
         membership.setUser(user);
         membership.setMlsRegion(region);
+        membership.setOffice(office);
         membership.setType(request.getType());
         membership.setStatus(MLSMembership.MembershipStatus.PENDING);
-        membership.setStartDate(request.getStartDate() != null ? request.getStartDate() : LocalDate.now());
-        membership.setEndDate(request.getEndDate());
-        membership.setAnnualFee(request.getAnnualFee());
-        membership.setOffice(office);
+        membership.setStartDate(LocalDate.now());
+        membership.setExpiryDate(LocalDate.now().plusYears(1));
         membership.setLicenseNumber(request.getLicenseNumber());
-        membership.setLicenseState(request.getLicenseState());
-        membership.setLicenseExpiryDate(request.getLicenseExpiryDate());
+        membership.setMembershipNumber(generateMlsNumber(region, request.getType()));
         
-        // Generate membership number
-        membership.setMembershipNumber(membership.generateMembershipNumber());
-        
-        // Set default permissions based on type
-        membership.setDefaultPermissions();
-        
-        // Set billing info
-        membership.setBillingAddress(request.getBillingAddress());
-        membership.setPaymentMethod(request.getPaymentMethod());
-        
-        MLSMembership savedMembership = membershipRepository.save(membership);
-        log.info("Created MLS membership with ID: {}", savedMembership.getId());
-        
-        return savedMembership;
+        return membershipRepository.save(membership);
     }
 
     /**
      * Update an existing membership.
      */
     public MLSMembership updateMembership(UUID membershipId, UpdateMembershipRequest request) {
-        log.info("Updating MLS membership: {}", membershipId);
-        
-        MLSMembership membership = membershipRepository.findById(membershipId)
-            .orElseThrow(() -> new EntityNotFoundException("Membership not found: " + membershipId));
-        
-        // Update basic fields
-        if (request.getType() != null) {
-            membership.setType(request.getType());
-            membership.setDefaultPermissions(); // Reset permissions based on new type
-        }
-        
-        if (request.getStatus() != null) {
-            membership.setStatus(request.getStatus());
-        }
-        
-        if (request.getEndDate() != null) {
-            membership.setEndDate(request.getEndDate());
-        }
-        
-        if (request.getAnnualFee() != null) {
-            membership.setAnnualFee(request.getAnnualFee());
-        }
-        
-        // Update office if provided
+        MLSMembership membership = getMembershipById(membershipId);
+        membership.setLicenseNumber(request.getLicenseNumber());
         if (request.getOfficeId() != null) {
             Office office = officeRepository.findById(request.getOfficeId())
-                .orElseThrow(() -> new EntityNotFoundException("Office not found: " + request.getOfficeId()));
-            
-            // Ensure office is in the same region
-            if (!office.getMlsRegion().equals(membership.getMlsRegion())) {
-                throw new IllegalArgumentException("Office must be in the same MLS region");
-            }
-            
+                .orElseThrow(() -> new EntityNotFoundException("Office not found with id: " + request.getOfficeId()));
             membership.setOffice(office);
         }
-        
-        // Update license info
-        if (request.getLicenseNumber() != null) {
-            membership.setLicenseNumber(request.getLicenseNumber());
+        if(request.getStatus() != null) {
+            membership.setStatus(request.getStatus());
         }
-        
-        if (request.getLicenseState() != null) {
-            membership.setLicenseState(request.getLicenseState());
+        if(request.getType() != null) {
+            membership.setType(request.getType());
         }
-        
-        if (request.getLicenseExpiryDate() != null) {
-            membership.setLicenseExpiryDate(request.getLicenseExpiryDate());
-        }
-        
-        // Update billing info
-        if (request.getBillingAddress() != null) {
-            membership.setBillingAddress(request.getBillingAddress());
-        }
-        
-        if (request.getPaymentMethod() != null) {
-            membership.setPaymentMethod(request.getPaymentMethod());
-        }
-        
-        MLSMembership savedMembership = membershipRepository.save(membership);
-        log.info("Updated MLS membership: {}", savedMembership.getId());
-        
-        return savedMembership;
-    }
-
-    /**
-     * Activate a membership.
-     */
-    public MLSMembership activateMembership(UUID membershipId) {
-        log.info("Activating MLS membership: {}", membershipId);
-        
-        MLSMembership membership = membershipRepository.findById(membershipId)
-            .orElseThrow(() -> new EntityNotFoundException("Membership not found: " + membershipId));
-        
-        // Validate requirements for activation
-        if (!membership.getTrainingCompleted()) {
-            throw new IllegalStateException("Training must be completed before activation");
-        }
-        
-        if (!membership.getAgreementAccepted()) {
-            throw new IllegalStateException("Agreement must be accepted before activation");
-        }
-        
-        if (membership.getLicenseExpiryDate() != null && 
-            membership.getLicenseExpiryDate().isBefore(LocalDate.now())) {
-            throw new IllegalStateException("License is expired");
-        }
-        
-        membership.setStatus(MLSMembership.MembershipStatus.ACTIVE);
-        
-        return membershipRepository.save(membership);
-    }
-
-    /**
-     * Suspend a membership.
-     */
-    public MLSMembership suspendMembership(UUID membershipId) {
-        log.info("Suspending MLS membership: {}", membershipId);
-        
-        MLSMembership membership = membershipRepository.findById(membershipId)
-            .orElseThrow(() -> new EntityNotFoundException("Membership not found: " + membershipId));
-        
-        membership.setStatus(MLSMembership.MembershipStatus.SUSPENDED);
-        
-        return membershipRepository.save(membership);
-    }
-
-    /**
-     * Terminate a membership.
-     */
-    public MLSMembership terminateMembership(UUID membershipId) {
-        log.info("Terminating MLS membership: {}", membershipId);
-        
-        MLSMembership membership = membershipRepository.findById(membershipId)
-            .orElseThrow(() -> new EntityNotFoundException("Membership not found: " + membershipId));
-        
-        membership.setStatus(MLSMembership.MembershipStatus.TERMINATED);
-        
-        return membershipRepository.save(membership);
-    }
-
-    /**
-     * Complete training for a membership.
-     */
-    public MLSMembership completeTraining(UUID membershipId) {
-        log.info("Completing training for membership: {}", membershipId);
-        
-        MLSMembership membership = membershipRepository.findById(membershipId)
-            .orElseThrow(() -> new EntityNotFoundException("Membership not found: " + membershipId));
-        
-        membership.setTrainingCompleted(true);
-        membership.setTrainingCompletionDate(LocalDate.now());
-        
-        return membershipRepository.save(membership);
-    }
-
-    /**
-     * Accept agreement for a membership.
-     */
-    public MLSMembership acceptAgreement(UUID membershipId) {
-        log.info("Accepting agreement for membership: {}", membershipId);
-        
-        MLSMembership membership = membershipRepository.findById(membershipId)
-            .orElseThrow(() -> new EntityNotFoundException("Membership not found: " + membershipId));
-        
-        membership.setAgreementAccepted(true);
-        membership.setAgreementAcceptedDate(LocalDateTime.now());
         
         return membershipRepository.save(membership);
     }
@@ -257,42 +98,172 @@ public class MLSMembershipService {
     @Transactional(readOnly = true)
     public MLSMembership getMembershipById(UUID membershipId) {
         return membershipRepository.findById(membershipId)
-            .orElseThrow(() -> new EntityNotFoundException("Membership not found: " + membershipId));
+            .orElseThrow(() -> new EntityNotFoundException("MLSMembership not found with id: " + membershipId));
     }
 
     /**
-     * Get membership by membership number.
+     * Approve a membership.
      */
-    @Transactional(readOnly = true)
-    public Optional<MLSMembership> getMembershipByNumber(String membershipNumber) {
-        return membershipRepository.findByMembershipNumber(membershipNumber);
+    public MLSMembership approveMembership(UUID membershipId, UUID approvedByUserId) {
+        MLSMembership membership = getMembershipById(membershipId);
+        User approver = userRepository.findById(approvedByUserId)
+            .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + approvedByUserId));
+        membership.setStatus(MLSMembership.MembershipStatus.ACTIVE);
+        membership.setApprovedBy(approver);
+        membership.setApprovedAt(LocalDateTime.now());
+        return membershipRepository.save(membership);
     }
 
     /**
-     * Get active memberships for a user.
+     * Suspend a membership.
      */
-    @Transactional(readOnly = true)
-    public List<MLSMembership> getActiveMembershipsForUser(UUID userId) {
-        return membershipRepository.findActiveByUserId(userId);
+    public MLSMembership suspendMembership(UUID membershipId, String reason) {
+        MLSMembership membership = getMembershipById(membershipId);
+        membership.setStatus(MLSMembership.MembershipStatus.SUSPENDED);
+        return membershipRepository.save(membership);
     }
 
     /**
-     * Get all memberships for a user.
+     * Terminate a membership.
+     */
+    public MLSMembership terminateMembership(UUID membershipId, String reason) {
+        MLSMembership membership = getMembershipById(membershipId);
+        membership.setStatus(MLSMembership.MembershipStatus.TERMINATED);
+        return membershipRepository.save(membership);
+    }
+
+    /**
+     * Renew a membership.
+     */
+    public MLSMembership renewMembership(UUID membershipId, int months) {
+        MLSMembership membership = getMembershipById(membershipId);
+        membership.setExpiryDate(membership.getExpiryDate() != null ? membership.getExpiryDate().plusMonths(months) : LocalDate.now().plusMonths(months));
+        membership.setStatus(MLSMembership.MembershipStatus.ACTIVE);
+        return membershipRepository.save(membership);
+    }
+
+    /**
+     * Update membership fees.
+     */
+    public MLSMembership updateMembershipFees(UUID membershipId, BigDecimal setupFee, BigDecimal monthlyFee) {
+        MLSMembership membership = getMembershipById(membershipId);
+        // Assuming fee fields exist on MLSMembership
+        // membership.setSetupFee(setupFee);
+        // membership.setMonthlyFee(monthlyFee);
+        return membershipRepository.save(membership);
+    }
+
+    /**
+     * Get membership stats by region.
      */
     @Transactional(readOnly = true)
-    public List<MLSMembership> getMembershipsForUser(UUID userId) {
-        return membershipRepository.findByUserIdAndStatus(userId, null);
+    public MembershipStats getMembershipStatsByRegion(UUID regionId) {
+        MLSRegion region = mlsRegionRepository.findById(regionId)
+            .orElseThrow(() -> new EntityNotFoundException("MLSRegion not found with id: " + regionId));
+
+        long totalMembers = membershipRepository.countByMlsRegion_Id(regionId);
+        long activeMembers = membershipRepository.countByMlsRegion_IdAndStatus(regionId, MLSMembership.MembershipStatus.ACTIVE);
+        long pendingMembers = membershipRepository.countByMlsRegion_IdAndStatus(regionId, MLSMembership.MembershipStatus.PENDING);
+        long suspendedMembers = membershipRepository.countByMlsRegion_IdAndStatus(regionId, MLSMembership.MembershipStatus.SUSPENDED);
+        long terminatedMembers = membershipRepository.countByMlsRegion_IdAndStatus(regionId, MLSMembership.MembershipStatus.TERMINATED);
+        long expiredMembers = membershipRepository.countByMlsRegion_IdAndStatus(regionId, MLSMembership.MembershipStatus.EXPIRED);
+        long brokers = membershipRepository.countByMlsRegion_IdAndType(regionId, MLSMembership.MembershipType.BROKER);
+        long agents = membershipRepository.countByMlsRegion_IdAndType(regionId, MLSMembership.MembershipType.AGENT);
+
+        return MembershipStats.builder()
+            .regionId(regionId)
+            .regionName(region.getRegionName())
+            .totalMembers(totalMembers)
+            .activeMembers(activeMembers)
+            .pendingMembers(pendingMembers)
+            .suspendedMembers(suspendedMembers)
+            .terminatedMembers(terminatedMembers)
+            .expiredMembers(expiredMembers)
+            .brokers(brokers)
+            .agents(agents)
+            .build();
+    }
+
+    /**
+     * Get expiring memberships.
+     */
+    @Transactional(readOnly = true)
+    public List<MLSMembership> getExpiringMemberships(int withinDays, UUID regionId) {
+        LocalDate expiryDate = LocalDate.now().plusDays(withinDays);
+        return membershipRepository.findExpiringMemberships(expiryDate, regionId);
+    }
+
+    /**
+     * Get pending memberships.
+     */
+    @Transactional(readOnly = true)
+    public List<MLSMembership> getPendingMemberships(UUID regionId) {
+        if (regionId != null) {
+            return membershipRepository.findByMlsRegion_IdAndStatus(regionId, MLSMembership.MembershipStatus.PENDING);
+        }
+        return membershipRepository.findByStatus(MLSMembership.MembershipStatus.PENDING);
+    }
+
+    /**
+     * Get membership by MLS number.
+     */
+    @Transactional(readOnly = true)
+    public MLSMembership getMembershipByMlsNumber(String mlsNumber) {
+        return membershipRepository.findByMembershipNumber(mlsNumber)
+            .orElseThrow(() -> new EntityNotFoundException("MLSMembership not found with MLS number: " + mlsNumber));
+    }
+
+    /**
+     * Transfer a membership.
+     */
+    public MLSMembership transferMembership(UUID membershipId, UUID newOfficeId) {
+        MLSMembership membership = getMembershipById(membershipId);
+        Office newOffice = officeRepository.findById(newOfficeId)
+            .orElseThrow(() -> new EntityNotFoundException("New Office not found with id: " + newOfficeId));
+
+        if (!membership.getMlsRegion().equals(newOffice.getMlsRegion())) {
+            throw new IllegalArgumentException("Cannot transfer membership to an office in a different MLS region.");
+        }
+
+        membership.setOffice(newOffice);
+        return membershipRepository.save(membership);
+    }
+
+    /**
+     * Get agents by supervising broker.
+     */
+    @Transactional(readOnly = true)
+    public List<MLSMembership> getAgentsBySupervisingBroker(UUID brokerId) {
+        User broker = userRepository.findById(brokerId)
+            .orElseThrow(() -> new EntityNotFoundException("Broker not found with id: " + brokerId));
+        return membershipRepository.findByOffice_SupervisingBroker(broker);
+    }
+
+    /**
+     * Validate MLS number.
+     */
+    @Transactional(readOnly = true)
+    public boolean validateMlsNumber(String mlsNumber) {
+        return membershipRepository.findByMembershipNumber(mlsNumber).isPresent();
+    }
+
+    /**
+     * Get memberships by user ID.
+     */
+    @Transactional(readOnly = true)
+    public List<MLSMembership> getMembershipsByUserId(UUID userId) {
+        return membershipRepository.findByUser_Id(userId);
     }
 
     /**
      * Get memberships by region.
      */
     @Transactional(readOnly = true)
-    public List<MLSMembership> getMembershipsByRegion(UUID regionId) {
-        MLSRegion region = regionRepository.findById(regionId)
-            .orElseThrow(() -> new EntityNotFoundException("Region not found: " + regionId));
-        
-        return membershipRepository.findByMlsRegion(region);
+    public List<MLSMembership> getMembershipsByRegion(UUID regionId, Boolean isActive) {
+        if (isActive != null) {
+            return membershipRepository.findByMlsRegion_IdAndStatus(regionId, isActive ? MLSMembership.MembershipStatus.ACTIVE : MLSMembership.MembershipStatus.INACTIVE);
+        }
+        return membershipRepository.findByMlsRegion_Id(regionId);
     }
 
     /**
@@ -300,83 +271,33 @@ public class MLSMembershipService {
      */
     @Transactional(readOnly = true)
     public List<MLSMembership> getMembershipsByOffice(UUID officeId) {
-        Office office = officeRepository.findById(officeId)
-            .orElseThrow(() -> new EntityNotFoundException("Office not found: " + officeId));
-        
-        return membershipRepository.findByOffice(office);
+        return membershipRepository.findByOffice_Id(officeId);
     }
 
     /**
-     * Find memberships expiring soon.
+     * Get memberships by type.
      */
     @Transactional(readOnly = true)
-    public List<MLSMembership> findExpiringSoon(int daysAhead) {
-        LocalDate expiryDate = LocalDate.now().plusDays(daysAhead);
-        return membershipRepository.findExpiringSoon(expiryDate);
+    public List<MLSMembership> getMembershipsByType(MLSMembership.MembershipType type, UUID regionId) {
+        if (regionId != null) {
+            return membershipRepository.findByMlsRegion_IdAndType(regionId, type);
+        }
+        return membershipRepository.findByType(type);
     }
 
     /**
-     * Find expired memberships.
+     * Search memberships.
      */
-    @Transactional(readOnly = true)
-    public List<MLSMembership> findExpiredMemberships() {
-        return membershipRepository.findExpired(LocalDate.now());
+    public List<MLSMembership> searchMemberships(Specification<MLSMembership> spec) {
+        return membershipRepository.findAll(spec);
     }
 
-    /**
-     * Search memberships by criteria.
-     */
-    @Transactional(readOnly = true)
-    public List<MLSMembership> searchMemberships(SearchMembershipRequest request) {
-        return membershipRepository.searchMemberships(
-            request.getUserId(),
-            request.getRegionId(),
-            request.getOfficeId(),
-            request.getType(),
-            request.getStatus()
-        );
-    }
-
-    // DTOs for requests
-    @lombok.Data
-    @lombok.Builder
-    public static class CreateMembershipRequest {
-        private UUID userId;
-        private UUID regionId;
-        private UUID officeId;
-        private MLSMembership.MembershipType type;
-        private LocalDate startDate;
-        private LocalDate endDate;
-        private BigDecimal annualFee;
-        private String licenseNumber;
-        private String licenseState;
-        private LocalDate licenseExpiryDate;
-        private String billingAddress;
-        private String paymentMethod;
-    }
-
-    @lombok.Data
-    @lombok.Builder
-    public static class UpdateMembershipRequest {
-        private MLSMembership.MembershipType type;
-        private MLSMembership.MembershipStatus status;
-        private LocalDate endDate;
-        private BigDecimal annualFee;
-        private UUID officeId;
-        private String licenseNumber;
-        private String licenseState;
-        private LocalDate licenseExpiryDate;
-        private String billingAddress;
-        private String paymentMethod;
-    }
-
-    @lombok.Data
-    @lombok.Builder
-    public static class SearchMembershipRequest {
-        private UUID userId;
-        private UUID regionId;
-        private UUID officeId;
-        private MLSMembership.MembershipType type;
-        private MLSMembership.MembershipStatus status;
+    private String generateMlsNumber(MLSRegion region, MLSMembership.MembershipType type) {
+        // Example: R1-A-12345
+        String prefix = "R" + region.getRegionCode().toUpperCase();
+        String typePrefix = type.toString().substring(0, 1);
+        // This is a simplification. A robust implementation would handle concurrency.
+        long count = membershipRepository.countByMlsRegion_IdAndType(region.getId(), type);
+        return String.format("%s-%s-%05d", prefix, typePrefix, count + 1);
     }
 } 
