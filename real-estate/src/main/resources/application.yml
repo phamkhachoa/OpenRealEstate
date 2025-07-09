@@ -1,0 +1,152 @@
+spring:
+  application:
+    name: real-estate
+  datasource:
+    url: jdbc:postgresql://localhost:5432/realestate
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=30m
+
+# Custom application properties
+app:
+  name: "Real Estate Management System"
+  version: "1.39.0"
+  
+  # Smart Search Configuration with Elasticsearch Integration
+  smart-search:
+    enabled: true
+    elasticsearch:
+      enabled: true
+      fallback-to-database: true
+      timeout-seconds: 30
+      max-results: 1000
+      highlighting:
+        enabled: true
+        fragment-size: 150
+        number-of-fragments: 3
+      scoring:
+        boost-by-confidence: true
+        confidence-multiplier: 2.0
+        field-boosts:
+          title: 3.0
+          description: 2.0
+          fullAddress: 1.5
+          amenities: 1.2
+      fuzzy-search:
+        enabled: true
+        fuzziness: "AUTO"
+        prefix-length: 2
+    
+    # Vietnamese NLP Configuration  
+    nlp:
+      enabled: true
+      python-path: "/usr/bin/python3"
+      script-timeout: 30
+      min-confidence: 0.3
+      cache:
+        enabled: true
+        max-size: 1000
+        expire-after-write: 60m
+      
+      # Advanced NLP Features
+      features:
+        entity-extraction: true
+        intent-classification: true
+        location-parsing: true
+        price-normalization: true
+        amenities-detection: true
+      
+      # Pattern Configuration
+      patterns:
+        property-types:
+          - "căn hộ|apartment|chung cư"
+          - "nhà riêng|nhà phố|townhouse"
+          - "biệt thự|villa"
+          - "shophouse|nhà mặt tiền"
+          - "đất nền|land|plot"
+        
+        locations:
+          districts:
+            - "quận 1|q1|district 1"
+            - "quận 7|q7|district 7"
+            - "thủ đức|thu duc"
+            - "bình thạnh|binh thanh"
+          
+        amenities:
+          - "hồ bơi|swimming pool|pool"
+          - "gym|phòng tập|fitness"
+          - "thang máy|elevator"
+          - "bảo vệ|security|an ninh"
+          - "gần trường|near school"
+          - "gần chợ|near market"
+
+# Elasticsearch Configuration (Enhanced)
+spring:
+  data:
+    elasticsearch:
+      repositories:
+        enabled: true
+      client:
+        reactive:
+          endpoints: "localhost:9200"
+          connection-timeout: 10s
+          read-timeout: 30s
+  
+  application:
+    name: real-estate
+  datasource:
+    url: jdbc:postgresql://localhost:5432/realestate
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=30m
+
+# Logging configuration
+logging:
+  level:
+    com.proptech.realestate: DEBUG
+    com.proptech.realestate.service.PythonExecutorService: DEBUG
+    com.proptech.realestate.service.VietnameseNLPService: DEBUG
+    org.springframework.cache: DEBUG
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/real-estate.log
+
+# Actuator endpoints for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,cache
+  endpoint:
+    health:
+      show-details: always 

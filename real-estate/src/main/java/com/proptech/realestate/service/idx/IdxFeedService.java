@@ -624,3 +624,4 @@ public class IdxFeedService {
         return feedProcessors.stream()
                 .anyMatch(processor -> processor.supports(feedType));
     }
+}
