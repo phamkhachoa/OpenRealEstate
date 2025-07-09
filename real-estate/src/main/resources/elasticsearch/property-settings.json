@@ -1,0 +1,73 @@
+{
+  "analysis": {
+    "analyzer": {
+      "address_analyzer": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": [
+          "lowercase",
+          "address_synonyms",
+          "stop_filter"
+        ]
+      },
+      "search_analyzer": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": [
+          "lowercase",
+          "property_synonyms",
+          "stop_filter",
+          "stemmer"
+        ]
+      }
+    },
+    "filter": {
+      "address_synonyms": {
+        "type": "synonym",
+        "synonyms": [
+          "st,street",
+          "ave,avenue",
+          "rd,road",
+          "blvd,boulevard",
+          "ln,lane",
+          "dr,drive",
+          "ct,court",
+          "pl,place",
+          "way,wy",
+          "pkwy,parkway"
+        ]
+      },
+      "property_synonyms": {
+        "type": "synonym",
+        "synonyms": [
+          "home,house,residence",
+          "condo,condominium",
+          "apt,apartment",
+          "townhome,townhouse",
+          "single family,sfr,detached",
+          "mobile home,manufactured home",
+          "pool,swimming pool",
+          "garage,parking",
+          "fireplace,fp",
+          "hardwood,wood floors",
+          "granite,granite counters",
+          "stainless,stainless steel"
+        ]
+      },
+      "stop_filter": {
+        "type": "stop",
+        "stopwords": [
+          "the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "a", "an"
+        ]
+      },
+      "stemmer": {
+        "type": "stemmer",
+        "language": "english"
+      }
+    }
+  },
+  "number_of_shards": 3,
+  "number_of_replicas": 1,
+  "max_result_window": 50000,
+  "refresh_interval": "30s"
+}

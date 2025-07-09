@@ -91,4 +91,49 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
             @Param("attributeValue") String attributeValue,
             Pageable pageable
     );
-} 
+
+    /**
+     * Find listing by listing ID (MLS Number)
+     */
+    java.util.Optional<Listing> findByListingId(String listingId);
+
+    /**
+     * Find listings by standard status
+     */
+    java.util.List<Listing> findByStandardStatus(String status);
+
+    /**
+     * Find listings by MLS ID
+     */
+    java.util.List<Listing> findByMlsId(String mlsId);
+
+    /**
+     * Find listings updated after timestamp
+     */
+    java.util.List<Listing> findByUpdatedAtAfter(java.time.LocalDateTime timestamp);
+
+    /**
+     * Find listings updated after timestamp with pagination
+     */
+    org.springframework.data.domain.Page<Listing> findByUpdatedAtAfter(java.time.LocalDateTime timestamp, Pageable pageable);
+
+    /**
+     * Find listings by MLS ID and updated after timestamp
+     */
+    java.util.List<Listing> findByMlsIdAndUpdatedAtAfter(String mlsId, java.time.LocalDateTime timestamp);
+
+    /**
+     * Count listings by standard status
+     */
+    long countByStandardStatus(String status);
+
+    /**
+     * Count listings by MLS ID
+     */
+    long countByMlsId(String mlsId);
+
+    /**
+     * Count listings by MLS ID and status
+     */
+    long countByMlsIdAndStandardStatus(String mlsId, String status);
+}

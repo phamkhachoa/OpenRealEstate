@@ -1,0 +1,287 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "listingKey": {
+      "type": "keyword"
+    },
+    "mlsId": {
+      "type": "keyword"
+    },
+    "address": {
+      "type": "text",
+      "analyzer": "address_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "suggest": {
+          "type": "completion"
+        }
+      }
+    },
+    "city": {
+      "type": "text",
+      "analyzer": "standard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 128
+        },
+        "suggest": {
+          "type": "completion"
+        }
+      }
+    },
+    "state": {
+      "type": "keyword"
+    },
+    "zipCode": {
+      "type": "keyword"
+    },
+    "county": {
+      "type": "keyword"
+    },
+    "neighborhood": {
+      "type": "text",
+      "analyzer": "standard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 128
+        }
+      }
+    },
+    "location": {
+      "type": "geo_point"
+    },
+    "propertyType": {
+      "type": "keyword"
+    },
+    "propertySubType": {
+      "type": "keyword"
+    },
+    "listPrice": {
+      "type": "scaled_float",
+      "scaling_factor": 100
+    },
+    "originalListPrice": {
+      "type": "scaled_float",
+      "scaling_factor": 100
+    },
+    "bedroomsTotal": {
+      "type": "integer"
+    },
+    "bathroomsTotalInteger": {
+      "type": "integer"
+    },
+    "bathroomsFull": {
+      "type": "integer"
+    },
+    "bathroomsHalf": {
+      "type": "integer"
+    },
+    "livingArea": {
+      "type": "scaled_float",
+      "scaling_factor": 100
+    },
+    "lotSizeSquareFeet": {
+      "type": "scaled_float",
+      "scaling_factor": 100
+    },
+    "yearBuilt": {
+      "type": "integer"
+    },
+    "stories": {
+      "type": "integer"
+    },
+    "parkingSpaces": {
+      "type": "integer"
+    },
+    "standardStatus": {
+      "type": "keyword"
+    },
+    "publicRemarks": {
+      "type": "text",
+      "analyzer": "search_analyzer"
+    },
+    "privateRemarks": {
+      "type": "text",
+      "analyzer": "search_analyzer"
+    },
+    "photos": {
+      "type": "keyword",
+      "index": false
+    },
+    "features": {
+      "type": "nested",
+      "properties": {
+        "name": {
+          "type": "keyword"
+        },
+        "value": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "category": {
+          "type": "keyword"
+        },
+        "type": {
+          "type": "keyword"
+        },
+        "sortOrder": {
+          "type": "integer"
+        }
+      }
+    },
+    "listingContractDate": {
+      "type": "date"
+    },
+    "modificationTimestamp": {
+      "type": "date"
+    },
+    "photoModificationTimestamp": {
+      "type": "date"
+    },
+    "daysOnMarket": {
+      "type": "integer"
+    },
+    "cumulativeDaysOnMarket": {
+      "type": "integer"
+    },
+    "listAgentMlsId": {
+      "type": "keyword"
+    },
+    "listAgentFullName": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "listAgentEmail": {
+      "type": "keyword"
+    },
+    "listAgentPhone": {
+      "type": "keyword"
+    },
+    "listOfficeMlsId": {
+      "type": "keyword"
+    },
+    "listOfficeName": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "listOfficePhone": {
+      "type": "keyword"
+    },
+    "schoolDistrict": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "elementarySchool": {
+      "type": "keyword"
+    },
+    "middleSchool": {
+      "type": "keyword"
+    },
+    "highSchool": {
+      "type": "keyword"
+    },
+    "taxAnnualAmount": {
+      "type": "scaled_float",
+      "scaling_factor": 100
+    },
+    "taxYear": {
+      "type": "integer"
+    },
+    "hoaFee": {
+      "type": "scaled_float",
+      "scaling_factor": 100
+    },
+    "hoaFeeFrequency": {
+      "type": "keyword"
+    },
+    "architecturalStyle": {
+      "type": "keyword"
+    },
+    "constructionMaterials": {
+      "type": "keyword"
+    },
+    "heating": {
+      "type": "keyword"
+    },
+    "cooling": {
+      "type": "keyword"
+    },
+    "waterSource": {
+      "type": "keyword"
+    },
+    "sewer": {
+      "type": "keyword"
+    },
+    "searchText": {
+      "type": "text",
+      "analyzer": "search_analyzer"
+    },
+    "searchTags": {
+      "type": "keyword"
+    },
+    "pricePerSquareFoot": {
+      "type": "scaled_float",
+      "scaling_factor": 100
+    },
+    "estimatedValue": {
+      "type": "scaled_float",
+      "scaling_factor": 100
+    },
+    "walkScore": {
+      "type": "scaled_float",
+      "scaling_factor": 10
+    },
+    "transitScore": {
+      "type": "scaled_float",
+      "scaling_factor": 10
+    },
+    "bikeScore": {
+      "type": "scaled_float",
+      "scaling_factor": 10
+    },
+    "virtualTourUrl": {
+      "type": "keyword",
+      "index": false
+    },
+    "hasVirtualTour": {
+      "type": "boolean"
+    },
+    "indexedAt": {
+      "type": "date"
+    },
+    "searchScore": {
+      "type": "integer"
+    },
+    "customFields": {
+      "type": "object",
+      "enabled": false
+    }
+  }
+}
