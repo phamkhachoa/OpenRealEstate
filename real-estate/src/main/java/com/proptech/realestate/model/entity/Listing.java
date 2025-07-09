@@ -143,10 +143,6 @@ public class Listing {
     private String description;
     
     @Type(JsonType.class)
-    @Column(name = "images", columnDefinition = "json")
-    private List<String> images;
-
-    @Type(JsonType.class)
     @Column(name = "amenities", columnDefinition = "json")
     private Map<String, Object> amenities;
 
@@ -165,6 +161,12 @@ public class Listing {
     @OneToOne(mappedBy = "listing", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private ListingAgreement listingAgreement;
     
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private java.util.List<Media> mediaList;
+
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private java.util.List<ListingAttribute> listingAttributes;
+
     @PrePersist
     protected void onCreate() {
         modificationTimestamp = LocalDateTime.now();
