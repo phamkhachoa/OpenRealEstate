@@ -20,11 +20,58 @@ spring:
     type: caffeine
     caffeine:
       spec: maximumSize=1000,expireAfterWrite=30m
+  
+  # Elasticsearch Configuration
+  data:
+    elasticsearch:
+      repositories:
+        enabled: true
+      client:
+        reactive:
+          endpoints: "localhost:9200"
+          connection-timeout: 10s
+          read-timeout: 30s
 
 # Custom application properties
 app:
   name: "Real Estate Management System"
   version: "1.39.0"
+  
+  # Exception Handling Configuration
+  exception:
+    # Control stack trace inclusion in responses
+    include-stack-trace:
+      # Global setting - can be overridden per exception
+      enabled: false
+      # Include stack trace only in development/debug mode
+      include-in-dev-mode: true
+      # Include stack trace for specific error codes
+      include-for-error-codes:
+        - "INTERNAL_SERVER_ERROR"
+        - "DATABASE_ERROR"
+        - "EXTERNAL_SERVICE_ERROR"
+    
+    # Detailed error information
+    detailed-errors:
+      # Include detailed error information in responses
+      enabled: true
+      # Include error timestamp
+      include-timestamp: true
+      # Include request ID for tracing
+      include-request-id: true
+      # Include error path/endpoint
+      include-path: true
+    
+    # Logging configuration for exceptions
+    logging:
+      # Log all exceptions regardless of handling
+      log-all-exceptions: true
+      # Log level for handled exceptions
+      handled-exception-level: "WARN"
+      # Log level for unhandled exceptions  
+      unhandled-exception-level: "ERROR"
+      # Include stack trace in logs
+      include-stack-trace-in-logs: true
   
   # Smart Search Configuration with Elasticsearch Integration
   smart-search:
@@ -94,46 +141,13 @@ app:
           - "gần trường|near school"
           - "gần chợ|near market"
 
-# Elasticsearch Configuration (Enhanced)
-spring:
-  data:
-    elasticsearch:
-      repositories:
-        enabled: true
-      client:
-        reactive:
-          endpoints: "localhost:9200"
-          connection-timeout: 10s
-          read-timeout: 30s
-  
-  application:
-    name: real-estate
-  datasource:
-    url: jdbc:postgresql://localhost:5432/realestate
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-  
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-  
-  cache:
-    type: caffeine
-    caffeine:
-      spec: maximumSize=1000,expireAfterWrite=30m
-
 # Logging configuration
 logging:
   level:
     com.proptech.realestate: DEBUG
     com.proptech.realestate.service.PythonExecutorService: DEBUG
     com.proptech.realestate.service.VietnameseNLPService: DEBUG
+    com.proptech.realestate.exception: DEBUG
     org.springframework.cache: DEBUG
   pattern:
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
